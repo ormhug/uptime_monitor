@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe --version)",
+      "Bash(.venv/Scripts/pip.exe list *)",
+      "Bash(.venv/Scripts/python.exe -m alembic init alembic)",
+      "Bash(pg_isready)",
+      "Bash(.venv/Scripts/python.exe -m alembic revision -m \"create monitors table\")",
+      "Bash(.venv/Scripts/python.exe -c \"from app.main import app; print\\('OK, routes:'\\); [print\\(r.path, r.methods\\) for r in app.routes]\")",
+      "Bash(.venv/Scripts/python.exe -m alembic check)",
+      "Bash(.venv/Scripts/python.exe -m alembic history)"
+    ]
+  }
+}
