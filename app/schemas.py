@@ -24,6 +24,28 @@ class MonitorResponse(BaseModel):
     check_interval_seconds: int
     is_active: bool
     created_at: datetime
+    last_checked_at: datetime | None
 
     # позволяет создавать схему напрямую из ORM-объекта SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
+
+
+class CheckResultResponse(BaseModel):
+    """Один результат проверки монитора."""
+
+    id: int
+    status: str
+    status_code: int | None
+    response_time_ms: int | None
+    checked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MonitorStatusResponse(BaseModel):
+    """Текущий статус монитора и uptime за последние 24 часа."""
+
+    monitor_id: int
+    # последняя проверка; None, если проверок ещё не было
+    last_result: CheckResultResponse | None
+    uptime_percent_24h: float

@@ -8,7 +8,24 @@
       "Bash(.venv/Scripts/python.exe -m alembic revision -m \"create monitors table\")",
       "Bash(.venv/Scripts/python.exe -c \"from app.main import app; print\\('OK, routes:'\\); [print\\(r.path, r.methods\\) for r in app.routes]\")",
       "Bash(.venv/Scripts/python.exe -m alembic check)",
-      "Bash(.venv/Scripts/python.exe -m alembic history)"
+      "Bash(.venv/Scripts/python.exe -m alembic history)",
+      "Bash(.venv/Scripts/pip.exe install *)",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/python.exe -m alembic revision -m \"add check_results table and monitor last_checked_at\")",
+      "Bash(.venv/Scripts/python.exe -m alembic upgrade head)",
+      "Bash(.venv/Scripts/python.exe -m alembic current)",
+      "Bash(.venv/Scripts/python.exe -m uvicorn app.main:app --port 8001)",
+      "Bash(echo \"started with pid $!\")",
+      "Bash(curl -s http://127.0.0.1:8001/)",
+      "Bash(sleep 3; cat /tmp/uvicorn_out.log 2>&1)",
+      "Bash(curl -s -X POST http://127.0.0.1:8001/monitors -H \"Content-Type: application/json\" -d '{\"url\":\"https://httpbin.org/status/200\",\"name\":\"test-up\",\"check_interval_seconds\":30}')",
+      "Bash(curl -s -X POST http://127.0.0.1:8001/monitors -H \"Content-Type: application/json\" -d '{\"url\":\"https://httpbin.org/status/500\",\"name\":\"test-down\",\"check_interval_seconds\":30}')",
+      "Bash(curl -s http://127.0.0.1:8001/monitors/5/history)",
+      "Bash(curl -s http://127.0.0.1:8001/monitors/5/status)",
+      "Bash(curl -s http://127.0.0.1:8001/monitors/6/history)",
+      "Bash(curl -s http://127.0.0.1:8001/monitors/6/status)",
+      "Bash(curl -s http://127.0.0.1:8001/monitors/999/history -o /dev/null -w \"404 test: %{http_code}\\\\n\")",
+      "Bash(taskkill //F //PID 3976)"
     ]
   }
 }
