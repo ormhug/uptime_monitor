@@ -27,7 +27,7 @@ def _get_monitor_or_404(monitor_id: int, db: Session) -> Monitor:
     return monitor
 
 
-@router.post("", response_model=MonitorResponse)
+@router.post("", response_model=MonitorResponse, status_code=201)
 def create_monitor(monitor: MonitorCreate, db: Session = Depends(get_db)):
     """Создать новый монитор."""
     db_monitor = Monitor(

@@ -1,57 +1,45 @@
 """
-Фоновый планировщик: раз в N секунд проверяет все активные мониторы.
+Планировщик: раз в N секунд ставит задачи проверки активных мониторов в очередь RQ.
 
-На этом этапе (Этап 1 roadmap) работает в рамках того же процесса FastAPI,
-без отдельного воркера и очереди — это добавится на Этапе 2.
+Сам планировщик по-прежнему работает внутри процесса API (через APScheduler),
+но больше не выполняет проверки сам — он только кладёт задачи в очередь Redis.
+Выполняет их отдельный процесс-воркер (app/worker.py).
 """
 import logging
-from datetime import datetime, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from rq import Queue
 
-from app.checker import check_url
 from app.database import SessionLocal
-from app.models import CheckResult, Monitor
+from app.models import Monitor
+from app.redis_conn import redis_conn
+from app.tasks import run_check
 
 logger = logging.getLogger(__name__)
 
-# как часто планировщик запускает проверку всех активных мониторов, в секундах
+# как часто планировщик ставит в очередь проверки активных мониторов, в секундах
 SCHEDULER_INTERVAL_SECONDS = 30
 
 scheduler = BackgroundScheduler()
+queue = Queue("checks", connection=redis_conn)
 
 
-def run_checks() -> None:
-    """Проверяет все активные мониторы и сохраняет результаты в БД."""
+def enqueue_checks() -> None:
+    """Ставит в очередь задачу проверки для каждого активного монитора."""
     db = SessionLocal()
     try:
         monitors = db.query(Monitor).filter(Monitor.is_active.is_(True)).all()
-        for monitor in monitors:
-            outcome = check_url(monitor.url)
-
-            db.add(
-                CheckResult(
-                    monitor_id=monitor.id,
-                    status=outcome.status,
-                    status_code=outcome.status_code,
-                    response_time_ms=outcome.response_time_ms,
-                )
-            )
-            monitor.last_checked_at = datetime.now(timezone.utc)
-
-            logger.info(
-                "monitor %s (%s): %s [%s], %d мс",
-                monitor.id, monitor.url, outcome.status, outcome.status_code, outcome.response_time_ms,
-            )
-
-        db.commit()
     finally:
         db.close()
+
+    for monitor in monitors:
+        queue.enqueue(run_check, monitor.id)
+        logger.info("монитор %s поставлен в очередь на проверку", monitor.id)
 
 
 def start_scheduler() -> None:
     """Запускает планировщик (вызывается при старте приложения)."""
-    scheduler.add_job(run_checks, "interval", seconds=SCHEDULER_INTERVAL_SECONDS, id="check_monitors")
+    scheduler.add_job(enqueue_checks, "interval", seconds=SCHEDULER_INTERVAL_SECONDS, id="enqueue_checks")
     scheduler.start()
 
 

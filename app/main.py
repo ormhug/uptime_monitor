@@ -14,7 +14,8 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # запускаем фоновый планировщик проверок при старте приложения
+    # запускаем планировщик постановки задач в очередь при старте приложения
+    # (сами проверки выполняет отдельный процесс — app/worker.py)
     start_scheduler()
     yield
     # и останавливаем его при завершении работы

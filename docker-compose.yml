@@ -1,0 +1,53 @@
+# Общие переменные окружения для api и worker — оба должны стучаться в одни
+# и те же Postgres/Redis. Вынесены в один якорь (YAML anchor), чтобы не дублировать.
+x-app-env: &app-env
+  # "postgres" и "redis" — это имена сервисов ниже, а не localhost:
+  # localhost внутри контейнера api указывал бы на сам контейнер api, где нет
+  # ни Postgres, ни Redis. Docker Compose поднимает все сервисы в одной общей
+  # сети и резолвит их имена через встроенный DNS — поэтому обращаемся к
+  # соседним контейнерам по имени сервиса.
+  DATABASE_URL: postgresql://uptime:uptime@postgres:5432/uptime_monitor
+  REDIS_URL: redis://redis:6379/0
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: uptime
+      POSTGRES_PASSWORD: uptime
+      POSTGRES_DB: uptime_monitor
+    volumes:
+      # именованный volume — данные Postgres переживают `docker compose down`
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      <<: *app-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      <<: *app-env
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # кэш pip-пакетов ключуется по хэшу requirements.txt: пока зависимости не
+      # меняются, повторные прогоны CI не скачивают их заново
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Postgres/Redis в CI не поднимаются: тесты используют SQLite in-memory
+      # (tests/conftest.py сам подставляет DATABASE_URL, если он не задан извне)
+      # и мокают httpx/check_url — реальные внешние сервисы им не нужны.
+      - name: Run tests
+        run: pytest -v
+
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Собираем оба образа без push — цель этого шага только убедиться,
+      # что Dockerfile'ы валидны и образы реально собираются.
+      - name: Build API image
+        run: docker build -f Dockerfile -t uptime-monitor-api:ci .
+
+      - name: Build worker image
+        run: docker build -f Dockerfile.worker -t uptime-monitor-worker:ci .
