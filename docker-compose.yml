@@ -45,9 +45,36 @@ services:
       dockerfile: Dockerfile.worker
     environment:
       <<: *app-env
+    ports:
+      # свой /metrics воркера (см. app/worker.py) — отдельно от api,
+      # т.к. это отдельный процесс со своим in-memory реестром prometheus_client
+      - "8001:8001"
     depends_on:
       - postgres
       - redis
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+      - worker
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      # автопровижининг datasource (Prometheus) — сами дашборды собираем вручную через UI
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_data:

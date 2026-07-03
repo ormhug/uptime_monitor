@@ -22,7 +22,8 @@
 docker compose up --build
 ```
 
-Поднимет 4 сервиса: `postgres`, `redis`, `api` (порт 8000), `worker`.
+Поднимет 6 сервисов: `postgres`, `redis`, `api` (порт 8000), `worker`, `prometheus` (порт 9090),
+`grafana` (порт 3000).
 
 Применить миграции (один раз после первого поднятия, и затем после каждой новой миграции):
 
@@ -46,6 +47,38 @@ docker compose down
 ```
 
 Добавить `-v` к `down`, если нужно снести и данные Postgres тоже.
+
+## Мониторинг (Prometheus + Grafana)
+
+- **Prometheus** — [http://localhost:9090](http://localhost:9090). Раз в 15 сек ходит на
+  `api:8000/metrics` и `worker:8001/metrics` (см. `prometheus.yml`). Проверить, что таргеты
+  живы: Status → Targets. Посмотреть сырые метрики вручную: вкладка Graph, в поле запроса —
+  например `monitor_checks_total` или `active_monitors_total`, кнопка Execute (таб Table
+  покажет текущие значения по всем лейблам, таб Graph — график во времени).
+- **Grafana** — [http://localhost:3000](http://localhost:3000), логин/пароль по умолчанию
+  `admin` / `admin` (при первом входе может попросить сменить пароль — можно пропустить).
+  Datasource на Prometheus подключается автоматически при старте (провижининг из
+  `grafana/provisioning/datasources/`), проверить: Connections → Data sources → должен
+  быть источник "Prometheus". Если по какой-то причине его нет — добавить вручную:
+  Connections → Data sources → Add data source → Prometheus → URL `http://prometheus:9090` → Save & test.
+  Дашборды (графики/панели) сюда не входят — их предполагается собирать вручную через UI
+  (Dashboards → New → Add visualization → выбрать datasource Prometheus → вписать запрос,
+  например `rate(monitor_checks_total[5m])`).
+
+Доступные метрики:
+
+- `active_monitors_total` — сколько сейчас активных мониторов (Gauge, обновляется в
+  `scheduler.py` раз в 30 сек). Смотреть с job="api" — в job="worker" эта же метрика тоже
+  видна из-за общего импорта `app/metrics.py`, но там всегда 0 (никогда не выставляется
+  в процессе воркера).
+- `monitor_checks_total{status="up"|"down"}` — сколько проверок и с каким исходом (Counter).
+  Живёт только на `worker:8001/metrics` — сама проверка (`run_check`) выполняется в процессе
+  воркера, а метрики `prometheus_client` хранятся в памяти процесса, поэтому у воркера свой
+  отдельный `/metrics`-эндпоинт (порт 8001), не тот же самый, что у API.
+- `monitor_check_duration_seconds` — длительность одной проверки (Histogram), тоже только
+  на `worker:8001/metrics`.
+- Стандартные HTTP-метрики API (`http_requests_total`, латентность и т.д.) — от
+  `prometheus-fastapi-instrumentator`, на `api:8000/metrics`.
 
 ## Локальный запуск без Docker
 

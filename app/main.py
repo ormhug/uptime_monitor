@@ -5,6 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.routers import monitors
 from app.scheduler import start_scheduler, stop_scheduler
@@ -23,6 +24,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Uptime Monitor", lifespan=lifespan)
+
+# добавляет стандартные HTTP-метрики (запросы, латентность, коды ответов)
+# и эндпоинт /metrics для Prometheus
+Instrumentator().instrument(app).expose(app)
 
 app.include_router(monitors.router)
 

@@ -11,6 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from rq import Queue
 
 from app.database import SessionLocal
+from app.metrics import active_monitors_total
 from app.models import Monitor
 from app.redis_conn import redis_conn
 from app.tasks import run_check
@@ -31,6 +32,8 @@ def enqueue_checks() -> None:
         monitors = db.query(Monitor).filter(Monitor.is_active.is_(True)).all()
     finally:
         db.close()
+
+    active_monitors_total.set(len(monitors))
 
     for monitor in monitors:
         queue.enqueue(run_check, monitor.id)

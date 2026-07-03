@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from app.checker import check_url
 from app.database import SessionLocal
+from app.metrics import monitor_check_duration_seconds, monitor_checks_total
 from app.models import CheckResult, Monitor
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,10 @@ def run_check(monitor_id: int) -> None:
             return
 
         outcome = check_url(monitor.url)
+
+        # response_time_ms уже измерен внутри check_url — повторно засекать не нужно
+        monitor_checks_total.labels(status=outcome.status).inc()
+        monitor_check_duration_seconds.observe(outcome.response_time_ms / 1000)
 
         db.add(
             CheckResult(

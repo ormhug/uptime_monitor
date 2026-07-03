@@ -1,0 +1,13 @@
+# Автоматическое подключение Prometheus как datasource при старте Grafana —
+# чтобы не настраивать его вручную через UI при каждом поднятии стенда.
+# Сами дашборды (панели/графики) сюда намеренно не входят — их собираем
+# вручную через интерфейс Grafana, чтобы освоиться с UI.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true

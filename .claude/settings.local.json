@@ -53,7 +53,16 @@
       "Bash(docker build *)",
       "Bash(rm -rf /c/Users/ggloh/AppData/Local/Temp/claude/E--PetProject/0b3b48e0-4ec6-44b2-87d6-347d47326493/scratchpad/ci_venv)",
       "Bash(docker rmi *)",
-      "Bash(.venv/Scripts/pip.exe uninstall *)"
+      "Bash(.venv/Scripts/pip.exe uninstall *)",
+      "Bash(curl -s http://127.0.0.1:8000/metrics)",
+      "Bash(curl -s http://127.0.0.1:8001/metrics)",
+      "Bash(curl -sv http://127.0.0.1:8001/metrics)",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/monitors -H \"Content-Type: application/json\" -d '{\"url\":\"https://httpbin.org/status/200\",\"name\":\"metrics-e2e-test\",\"check_interval_seconds\":30}')",
+      "Bash(curl -s 'http://127.0.0.1:9090/api/v1/targets')",
+      "Bash(python -c ' *)",
+      "Bash(curl -s 'http://127.0.0.1:9090/api/v1/query?query=monitor_checks_total')",
+      "Bash(curl -s 'http://127.0.0.1:9090/api/v1/query?query=active_monitors_total')",
+      "Bash(curl -s -u admin:admin http://127.0.0.1:3000/api/datasources)"
     ]
   }
 }

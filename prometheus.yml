@@ -1,0 +1,20 @@
+# Конфиг Prometheus. Таргеты указаны по именам сервисов docker-compose (api,
+# worker), а не localhost — по той же причине, что и DATABASE_URL/REDIS_URL
+# в docker-compose.yml: внутри сети compose контейнеры видят друг друга только
+# по именам сервисов.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # стандартные HTTP-метрики + активные мониторы (active_monitors_total,
+  # обновляется в scheduler.py, который работает в процессе api)
+  - job_name: api
+    static_configs:
+      - targets: ["api:8000"]
+
+  # monitor_checks_total и monitor_check_duration_seconds считаются в run_check,
+  # который выполняется в процессе воркера — у него свой отдельный /metrics
+  # (см. app/worker.py, start_http_server), поэтому отдельный job
+  - job_name: worker
+    static_configs:
+      - targets: ["worker:8001"]
